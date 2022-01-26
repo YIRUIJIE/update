@@ -14,6 +14,14 @@
 |Update_V1.0.apk  | [https://gitee.com/yiruijie/update/attach_files/955256/download/Update_V1.0.apk](https://gitee.com/yiruijie/update/attach_files/955256/download/Update_V1.0.apk) |
 
 ### 一.更新弹窗效果图
+
+#### 强制升级
+	点击升级弹窗外的其他屏幕部分，不可取消升级弹窗。
+	应用内下载完成后自动跳转安装，不可取消进度弹窗。
+	点击浏览器下载时销毁软件界面，并直接跳转到浏览器下载。
+#### 非强制升级
+	点击升级弹窗外的其他屏幕部分，可取消弹窗。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/78bb2d4784d94da58f9234c41a03c054.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAeWlyag==,size_20,color_FFFFFF,t_70,g_se,x_16)
 ### 二. 搭建json格式网页及源码
 
