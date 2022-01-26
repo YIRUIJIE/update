@@ -10,7 +10,7 @@
 
 |名称|地址  |
 |--|--|
-|小Demo源码  | [https://gitee.com/yiruijie/update.git](https://gitee.com/yiruijie/update.git) |
+|CSDN文章| [https://blog.csdn.net/yi_rui_jie/article/details/122685853](https://blog.csdn.net/yi_rui_jie/article/details/122685853) |
 |Update_V1.0.apk  | [https://gitee.com/yiruijie/update/attach_files/955256/download/Update_V1.0.apk](https://gitee.com/yiruijie/update/attach_files/955256/download/Update_V1.0.apk) |
 
 ### 一.更新弹窗效果图
