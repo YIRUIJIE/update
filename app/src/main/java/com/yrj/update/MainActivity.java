@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -34,17 +35,23 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
-    
+
     private static boolean hasUpdate, NoIgnorable = true; //是否有更新//不可忽略的更新
     private static int versionCode = 0;
     private static String versionName, updateLog, apkSize, apkUrl, webUrl = "";
+    private static final String[] upl = new String[]{"https://yirj.gitee.io/json1111", "https://yirj.gitee.io/json1"};//无效 有效
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //进入界面调用检查更新的方法
+        //解决网络安全异常问题
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+        //进入界面调用检查更新的方
         checkUpdate();
+        //申请存储权限
+        getReadPermissions();
     }
 
     //点击检查更新按钮
@@ -56,26 +63,17 @@ public class MainActivity extends AppCompatActivity {
 
     //检查更新的方法
     private void checkUpdate() {
-        new Thread() {
-            @Override
-            public void run() {
-                Looper.prepare();
-                try {
-                    GetServerJson();
-                    //如果检测本程序的版本号小于服务器的版本号，那么提示用户更新
-                    if (hasUpdate & getVersionCode() < versionCode) {
-                        //申请存储权限
-                        getReadPermissions();
-                        showDialogUpdate();//弹出提示版本更新的对话框
-                    } else {
-                        Toast.makeText(MainActivity.this, "当前已是最新版本", Toast.LENGTH_LONG).show();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                Looper.loop();
+        try {
+            GetServerJson();
+            //如果检测本程序的版本号小于服务器的版本号，那么提示用户更新
+            if (hasUpdate & getVersionCode() < versionCode) {
+                showDialogUpdate();//弹出提示版本更新的对话框
+            } else {
+                Toast.makeText(this, "当前已是最新版本", Toast.LENGTH_LONG).show();
             }
-        }.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -134,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
         InputStream inStream;
         String line;
         try {
-            String uurl = "https://yirj.gitee.io/json1";
+            String uurl = checkUrl(upl);//轮询验证可用url
             infoUrl = new URL(uurl);
             URLConnection connection = infoUrl.openConnection();
             HttpURLConnection httpConnection = (HttpURLConnection) connection;
@@ -149,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
                 int start = strber.indexOf("{");
                 int end = strber.indexOf("}");
                 String json = strber.substring(start, end + 1);
+//                System.out.println("更新JSON:\n" + json);
                 try {
                     JSONObject jSONObject = new JSONObject(json);
                     hasUpdate = jSONObject.getBoolean("hasUpdate");
@@ -168,6 +167,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
+     * 验证Url 单例模式
+     */
+    public static String checkUrl(String[] ltl) {
+        String resultUrl = null;
+        for (String url : ltl) {
+            resultUrl = url;
+            try {
+                URL infoUrl = new URL(url);
+                URLConnection connection = infoUrl.openConnection();
+                HttpURLConnection httpConnection = (HttpURLConnection) connection;
+                int code = httpConnection.getResponseCode();
+//                System.out.println("Code:" + code+" 链接："+resultUrl); //200 404
+                if (code == 200) { //状态码为200证明网址正常，跳出for不再循环，如果不为200，就循环下一个网址。
+                    break;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return resultUrl;
+    }
 
     /**
      * 下载新版本程序
@@ -209,7 +230,7 @@ public class MainActivity extends AppCompatActivity {
         intent.setAction(Intent.ACTION_VIEW);
 
         if (Build.VERSION.SDK_INT >= 24) {
-            Uri apkUri = FileProvider.getUriForFile(this, "com.yrj.update.fileprovider", file);
+            Uri apkUri = FileProvider.getUriForFile(this, getApplication().getPackageName() + ".fileprovider", file);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");

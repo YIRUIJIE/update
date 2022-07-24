@@ -1,27 +1,23 @@
 ## [Andrioid开发] 实现一个简单通用的APP更新服务
-
-
-- 已测试适用于安卓6、7、8、9、10。(11、12未测)
-- 支持可json远程控制的强制更新和非强制更新。
-- 支持浏览器下载和应用内直接下载并跳转安装。
-- 支持进入界面检测升级和点击按钮检测升级。
-- 支持根据自己需求自定义修改检测更新代码。
- 
+> 已测试适用于安卓6、7、8、9、10。(11、12未测，可自测)
+> 支持可json远程控制的强制更新和非强制更新。
+> 支持浏览器下载和应用内直接下载并跳转安装。
+> 支持进入界面检测升级和点击按钮检测升级。
+> 支持根据自己需求自定义修改检测更新代码。
+> 
 
 |名称|地址  |
 |--|--|
-|CSDN文章| [https://blog.csdn.net/yi_rui_jie/article/details/122685853](https://blog.csdn.net/yi_rui_jie/article/details/122685853) |
+|小Demo源码  | [https://gitee.com/yiruijie/update.git](https://gitee.com/yiruijie/update.git) |
 |Update_V1.0.apk  | [https://gitee.com/yiruijie/update/attach_files/955256/download/Update_V1.0.apk](https://gitee.com/yiruijie/update/attach_files/955256/download/Update_V1.0.apk) |
 
 ### 一.更新弹窗效果图
-
 #### 强制升级
 	点击升级弹窗外的其他屏幕部分，不可取消升级弹窗。
 	应用内下载完成后自动跳转安装，不可取消进度弹窗。
 	点击浏览器下载时销毁软件界面，并直接跳转到浏览器下载。
 #### 非强制升级
 	点击升级弹窗外的其他屏幕部分，可取消弹窗。
-
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/78bb2d4784d94da58f9234c41a03c054.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBAeWlyag==,size_20,color_FFFFFF,t_70,g_se,x_16)
 ### 二. 搭建json格式网页及源码
 
@@ -46,7 +42,7 @@ https://yirj.gitee.io/json1
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>https://yirj.gitee.io/json1</title>
+	<title>更新检查</title>
 </head>
 <body>
 	<pre id="json"></pre>
@@ -128,13 +124,20 @@ public class MainActivity extends AppCompatActivity {
     private static boolean hasUpdate, NoIgnorable = true; //是否有更新//不可忽略的更新
     private static int versionCode = 0;
     private static String versionName, updateLog, apkSize, apkUrl, webUrl = "";
+    private static final String[] upl = new String[]{"https://yirj.gitee.io/json1111", "https://yirj.gitee.io/json1"};//无效 有效轮询
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //进入界面调用检查更新的方法
+        //解决网络安全异常问题
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+        //进入界面调用检查更新的方
         checkUpdate();
+        //申请存储权限
+        getReadPermissions();
     }
 
     //点击检查更新按钮
@@ -146,26 +149,17 @@ public class MainActivity extends AppCompatActivity {
 
     //检查更新的方法
     private void checkUpdate() {
-        new Thread() {
-            @Override
-            public void run() {
-                Looper.prepare();
-                try {
-                    GetServerJson();
-                    //如果检测本程序的版本号小于服务器的版本号，那么提示用户更新
-                    if (hasUpdate & getVersionCode() < versionCode) {
-                        //申请存储权限
-                        getReadPermissions();
-                        showDialogUpdate();//弹出提示版本更新的对话框
-                    } else {
-                        Toast.makeText(MainActivity.this, "当前已是最新版本", Toast.LENGTH_LONG).show();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                Looper.loop();
+        try {
+            GetServerJson();
+            //如果检测本程序的版本号小于服务器的版本号，那么提示用户更新
+            if (hasUpdate & getVersionCode() < versionCode) {
+                showDialogUpdate();//弹出提示版本更新的对话框
+            } else {
+                Toast.makeText(this, "当前已是最新版本", Toast.LENGTH_LONG).show();
             }
-        }.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -224,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         InputStream inStream;
         String line;
         try {
-            String uurl = "https://yirj.gitee.io/json1";//检测升级的服务端链接
+            String uurl = checkUrl(upl);//轮询验证可用url
             infoUrl = new URL(uurl);
             URLConnection connection = infoUrl.openConnection();
             HttpURLConnection httpConnection = (HttpURLConnection) connection;
@@ -239,6 +233,7 @@ public class MainActivity extends AppCompatActivity {
                 int start = strber.indexOf("{");
                 int end = strber.indexOf("}");
                 String json = strber.substring(start, end + 1);
+                //System.out.println("更新JSON:\n" + json);
                 try {
                     JSONObject jSONObject = new JSONObject(json);
                     hasUpdate = jSONObject.getBoolean("hasUpdate");
@@ -258,6 +253,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+	/*
+     * 验证Url 单例模式
+     */
+    public static String checkUrl(String[] ltl) {
+        String resultUrl = null;
+        for (String url : ltl) {
+            resultUrl = url;
+            try {
+                URL infoUrl = new URL(url);
+                URLConnection connection = infoUrl.openConnection();
+                HttpURLConnection httpConnection = (HttpURLConnection) connection;
+                int code = httpConnection.getResponseCode();
+//                System.out.println("Code:" + code+" 链接："+resultUrl); //200 404
+                if (code == 200) { //状态码为200证明网址正常，跳出for不再循环，如果不为200，就循环下一个网址。
+                    break;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return resultUrl;
+    }
 
     /**
      * 下载新版本程序
@@ -299,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
         intent.setAction(Intent.ACTION_VIEW);
 
         if (Build.VERSION.SDK_INT >= 24) {
-            Uri apkUri = FileProvider.getUriForFile(this, "com.yrj.update(应用包名).fileprovider", file);
+            Uri apkUri = FileProvider.getUriForFile(this, getApplication().getPackageName() + ".fileprovider", file);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
